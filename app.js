@@ -2,7 +2,7 @@ const express = require('express')
 const dotenv = require('dotenv')
 const cors = require('cors')
 const app = express()
-
+const errorMiddleware = require("./middleware/error")
 // Config File
 const path = './config/config.env'
 dotenv.config({ path })
@@ -31,5 +31,7 @@ app.all("*", async (req, res) => {
         },
     });
 });
+
+app.use(errorMiddleware);
 
 module.exports = app
