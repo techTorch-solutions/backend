@@ -1,3 +1,4 @@
 const { userRoute } = require("./user")
+const { adminRoute } = require("./admin")
 
-module.exports = { userRoute }
+module.exports = { userRoute, adminRoute }

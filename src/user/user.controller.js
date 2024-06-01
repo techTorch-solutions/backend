@@ -103,7 +103,7 @@ exports.register = catchAsyncError(async (req, res, next) => {
     }
 })
 
-exports.verifyOTP = catchAsyncError(async (req, res, next) => {
+exports.verifyRegisterOTP = catchAsyncError(async (req, res, next) => {
     const { email, otp } = req.body;
 
     const user = await userModel.findOne({ email });
@@ -141,4 +141,122 @@ exports.verifyOTP = catchAsyncError(async (req, res, next) => {
     };
 
     res.status(StatusCodes.OK).json({ success: true, user: userResponse, token });
+});
+
+exports.login = catchAsyncError(async (req, res, next) => {
+    console.log("login", req.body);
+    const { email, password } = req.body;
+
+    const user = await userModel
+        .findOne({ email }).select("+password")
+
+    if (!user) {
+        return next(
+            new ErrorHandler(
+                "User not found with entered credentials",
+                StatusCodes.NOT_FOUND
+            )
+        );
+    }
+
+    if (!user.is_verified) {
+        return next(
+            new ErrorHandler("Please Verify OTP.", StatusCodes.UNAUTHORIZED)
+        );
+    }
+
+    const isMatch = await user.comparePassword(password);
+
+    if (!isMatch) {
+        return next(
+            new ErrorHandler("Invalid Credentials", StatusCodes.BAD_REQUEST)
+        );
+    }
+
+    const token = user.getJWTToken();
+
+    res.status(StatusCodes.OK).json({ user, token });
+});
+
+exports.resendOTP = catchAsyncError(async (req, res, next) => {
+    console.log("resendOTP", req.body);
+    const { email } = req.body;
+    if (!email) {
+        return next(new ErrorHandler("Please enter your email.", 400));
+    }
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+        return next(
+            new ErrorHandler("Please register or User doesn't exist.", 400)
+        );
+    }
+
+    const otp = generateOTP();
+    await storeOTP({ otp, user: user._id });
+
+    try {
+        const message = getMsg(otp);
+        await sendMail({
+            email: email,
+            subject: "Resend OTP",
+            message,
+        });
+
+        res.status(200).json({ message: "OTP sent to your email successfully" });
+    } catch (error) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+exports.verifyOtp = catchAsyncError(async (req, res, next) => {
+    const { otp } = req.body;
+
+    if (!otp) {
+        return next(new ErrorHandler("Missing OTP", StatusCodes.BAD_REQUEST));
+    }
+
+    const otpInstance = await otpModel.findOne({ otp });
+
+    if (!otpInstance) {
+        await otpModel.destroy({ id: otpInstance.id });
+        return next(
+            new ErrorHandler(
+                "Invalid OTP. Please check the entered OTP.",
+                StatusCodes.BAD_REQUEST
+            )
+        );
+    }
+
+    // if (!otpInstance || otpInstance.isValid()) {
+    //   if (otpInstance) {
+    //     await otpModel.destroy({ where: { id: otpInstance.id } });
+    //   }
+
+    //   return next(
+    //     new ErrorHandler(
+    //       "OTP is invalid or has been expired",
+    //       StatusCodes.BAD_REQUEST
+    //     )
+    //   );
+    // }
+
+    await otpModel.destroy({ id: otpInstance.id });
+
+    res
+        .status(StatusCodes.OK)
+        .json({ message: "OTP verified successfully", userId: otpInstance.userId });
+});
+
+exports.getProfile = catchAsyncError(async (req, res, next) => {
+    console.log("User profile", req.userId);
+
+    const { userId } = req;
+
+    const user = await userModel.findById(userId);
+
+    if (!user)
+        return next(new ErrorHandler("User not found", StatusCodes.NOT_FOUND));
+
+    res.status(StatusCodes.OK).json({ user });
 });

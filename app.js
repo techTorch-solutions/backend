@@ -18,11 +18,10 @@ app.use(
 app.get("/", (req, res, next) => res.json({ message: "Server is running" }));
 
 
-const { userRoute } = require("./src")
+const { userRoute, adminRoute } = require("./src")
 
 app.use("/api/user", userRoute)
-
-
+app.use("/api/admin", adminRoute)
 
 app.all("*", async (req, res) => {
     res.status(404).json({

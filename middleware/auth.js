@@ -1,12 +1,12 @@
 const jwt = require("jsonwebtoken");
-const { userModel } = require("../src/user/user.model");
+const userModel = require("../src/user/user.model");
 const ErrorHandler = require("../utils/errorhandler");
 const { StatusCodes } = require("http-status-codes");
 
 exports.auth = async (req, res, next) => {
-    console.log(req.headers.authorization);
+    console.log(req.headers.auth);
     try {
-        if (!req.headers.authorization) {
+        if (!req.headers.auth) {
             return res.status(401).send({
                 error: {
                     message: `Unauthorized. Please Send token in request header`,
@@ -15,7 +15,7 @@ exports.auth = async (req, res, next) => {
         }
 
         const { userId } = jwt.verify(
-            req.headers.authorization,
+            req.headers.auth,
             process.env.JWT_SECRET
         );
         console.log({ userId });
@@ -32,7 +32,8 @@ exports.auth = async (req, res, next) => {
 exports.authRole = (roles) => async (req, res, next) => {
     try {
         const userId = req.userId;
-        const user = await userModel.findByPk(userId);
+        const user = await userModel.findById(userId)
+        console.log(user)
         if (!user)
             return next(
                 new ErrorHandler(
@@ -48,6 +49,7 @@ exports.authRole = (roles) => async (req, res, next) => {
 
         next();
     } catch (error) {
-        return next(new ErrorHandler("Unauthorized.", StatusCodes.UNAUTHORIZED));
+        console.log("ERRORRRRR", error)
+        return next(new ErrorHandler("Unauthorized.", StatusCodes.UNAUTHORIZED, error));
     }
 };

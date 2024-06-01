@@ -28,7 +28,8 @@ const UserSchema = new mongoose.Schema(
         password: {
             type: String,
             required: [true, "Password is required"],
-            minlength: [6, "Password must be at least 6 characters"]
+            minlength: [6, "Password must be at least 6 characters"],
+            select: false
         },
         profile: {
             type: String,
@@ -46,6 +47,12 @@ const UserSchema = new mongoose.Schema(
                 /^[0-9]{10}$/,
                 "Please add a valid mobile number"
             ]
+        },
+        role: {
+            type: String,
+            required: [true, "Role is Required"],
+            enum: ["User", "Admin"],
+            default: "User"
         },
         is_verified: {
             type: Boolean,
